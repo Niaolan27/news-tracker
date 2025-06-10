@@ -22,13 +22,12 @@ class NewsScraper:
         # Popular RSS feeds - you can customize this list
         self.rss_feeds = {
             'BBC News': 'http://feeds.bbci.co.uk/news/rss.xml',
-            'Reuters': 'http://feeds.reuters.com/reuters/topNews',
+            'Reuters': 'https://ir.thomsonreuters.com/rss/events.xml',
             'CNN': 'http://rss.cnn.com/rss/edition.rss',
             'TechCrunch': 'https://techcrunch.com/feed/',
             'Hacker News': 'https://hnrss.org/frontpage',
             'NPR': 'https://feeds.npr.org/1001/rss.xml',
-            'The Guardian': 'https://www.theguardian.com/world/rss',
-            'Associated Press': 'https://apnews.com/apf-topnews',
+            'The Guardian': 'https://www.theguardian.com/world/rss'
         }
     
     def parse_date(self, date_string: str) -> datetime:

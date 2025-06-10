@@ -125,9 +125,25 @@ class NewsTracker:
             print(f"{i:2}. {name}")
             print(f"     {url}")
 
+    def list_titles(self, limit=None):
+        """List all articles by their titles"""
+        articles = self.db.get_latest_articles(limit or 1000)  # Get all or specified limit
+        
+        if not articles:
+            print("No articles found in database. Run scrape first!")
+            return
+        
+        print(f"\n📋 All Article Titles ({len(articles)} total):")
+        print("=" * 80)
+        
+        for i, article in enumerate(articles, 1):
+            published = article.published_date.strftime('%Y-%m-%d') if article.published_date else 'No date'
+            print(f"{i:4}. [{published}] {article.title}")
+            print(f"      Source: {article.source}")
+
 def main():
     parser = argparse.ArgumentParser(description='News Tracker MVP')
-    parser.add_argument('command', choices=['scrape', 'latest', 'search', 'stats', 'add-feed', 'list-feeds'],
+    parser.add_argument('command', choices=['scrape', 'latest', 'search', 'stats', 'add-feed', 'list-feeds', 'list-titles'],
                        help='Command to execute')
     parser.add_argument('--keyword', '-k', help='Keyword for search command')
     parser.add_argument('--limit', '-l', type=int, default=10, help='Limit number of results')
@@ -162,6 +178,10 @@ def main():
             
         elif args.command == 'list-feeds':
             tracker.list_feeds()
+
+        elif args.command == 'list-titles':
+            tracker.list_titles(args.limit)
+        
             
     except KeyboardInterrupt:
         print("\n👋 Goodbye!")
