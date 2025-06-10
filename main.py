@@ -140,15 +140,48 @@ class NewsTracker:
             published = article.published_date.strftime('%Y-%m-%d') if article.published_date else 'No date'
             print(f"{i:4}. [{published}] {article.title}")
             print(f"      Source: {article.source}")
+    
+    def show_personalized(self, limit=10):
+        """Show personalized article recommendations"""
+        scored_articles = self.db.get_personalized_articles(limit)
+        
+        if not scored_articles:
+            print("No personalized recommendations available. Add some preferences first!")
+            return
+        
+        print(f"\n🎯 Personalized Recommendations ({len(scored_articles)} articles):")
+        print("=" * 80)
+        
+        for i, (article, score) in enumerate(scored_articles, 1):
+            print(f"\n{i}. {article.title} (Score: {score:.3f})")
+            print(f"   📅 {article.published_date.strftime('%Y-%m-%d %H:%M') if article.published_date else 'No date'}")
+            print(f"   📊 {article.source}")
+            if article.category:
+                print(f"   🏷️  {article.category}")
+            print(f"   🔗 {article.url}")
+    
+    def add_preference(self, keywords, categories=None, weight=1.0):
+        """Add user preference for personalization"""
+        keyword_list = keywords.split(',') if isinstance(keywords, str) else keywords
+        category_list = categories.split(',') if categories and isinstance(categories, str) else categories
+        
+        self.db.add_user_preference_with_embedding(keyword_list, category_list, weight)
+        print(f"✅ Added preference: {keyword_list}")
+        if category_list:
+            print(f"   Categories: {category_list}")
+        print(f"   Weight: {weight}")
 
 def main():
     parser = argparse.ArgumentParser(description='News Tracker MVP')
-    parser.add_argument('command', choices=['scrape', 'latest', 'search', 'stats', 'add-feed', 'list-feeds', 'list-titles'],
+    parser.add_argument('command', choices=['scrape', 'latest', 'search', 'stats', 'add-feed', 'list-feeds', 'list-titles', 'personalized', 'add-preference'],
                        help='Command to execute')
     parser.add_argument('--keyword', '-k', help='Keyword for search command')
     parser.add_argument('--limit', '-l', type=int, default=10, help='Limit number of results')
     parser.add_argument('--feed-name', help='Name for new RSS feed')
     parser.add_argument('--feed-url', help='URL for new RSS feed')
+    parser.add_argument('--keywords', help='Keywords for preference (comma-separated)')
+    parser.add_argument('--categories', help='Categories for preference (comma-separated)')
+    parser.add_argument('--weight', type=float, default=1.0, help='Weight for preference')
     
     args = parser.parse_args()
     
@@ -181,6 +214,15 @@ def main():
 
         elif args.command == 'list-titles':
             tracker.list_titles(args.limit)
+        
+        elif args.command == 'personalized':
+            tracker.show_personalized(args.limit)
+            
+        elif args.command == 'add-preference':
+            if not args.keywords:
+                print("❌ Add preference requires --keywords parameter")
+                sys.exit(1)
+            tracker.add_preference(args.keywords, args.categories, args.weight)
         
             
     except KeyboardInterrupt:
