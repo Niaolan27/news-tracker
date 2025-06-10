@@ -141,15 +141,15 @@ class NewsTracker:
             print(f"{i:4}. [{published}] {article.title}")
             print(f"      Source: {article.source}")
     
-    def show_personalized(self, limit=10):
-        """Show personalized article recommendations"""
-        scored_articles = self.db.get_personalized_articles(limit)
+    def show_personalized(self, username, limit=10):
+        """Show personalized article recommendations for specific user"""
+        scored_articles = self.db.get_personalized_articles(username, limit)
         
         if not scored_articles:
-            print("No personalized recommendations available. Add some preferences first!")
+            print(f"No personalized recommendations available for {username}. Add some preferences first!")
             return
         
-        print(f"\n🎯 Personalized Recommendations ({len(scored_articles)} articles):")
+        print(f"\n🎯 Personalized Recommendations for {username} ({len(scored_articles)} articles):")
         print("=" * 80)
         
         for i, (article, score) in enumerate(scored_articles, 1):
@@ -160,33 +160,62 @@ class NewsTracker:
                 print(f"   🏷️  {article.category}")
             print(f"   🔗 {article.url}")
     
-    def add_preference(self, keywords, categories=None, weight=1.0):
-        """Add user preference for personalization"""
+    def add_preference(self, username, keywords, categories=None, weight=1.0):
+        """Add user preference for personalization for specific user"""
         keyword_list = keywords.split(',') if isinstance(keywords, str) else keywords
         category_list = categories.split(',') if categories and isinstance(categories, str) else categories
         
-        self.db.add_user_preference_with_embedding(keyword_list, category_list, weight)
-        print(f"✅ Added preference: {keyword_list}")
+        self.db.add_user_preference_with_embedding(username, keyword_list, category_list, weight)
+        print(f"✅ Added preference for {username}: {keyword_list}")
         if category_list:
             print(f"   Categories: {category_list}")
         print(f"   Weight: {weight}")
+    
+    def list_users(self):
+        """List all users in the system"""
+        users = self.db.list_users()
+        if not users:
+            print("No users found in the system.")
+            return
+        
+        print(f"\n👥 Users ({len(users)} total):")
+        print("-" * 40)
+        for user_id, username, email in users:
+            print(f"{user_id:3}. {username}")
+            if email:
+                print(f"     📧 {email}")
+    
+    def show_user_preferences(self, username):
+        """Show preferences for a specific user"""
+        preferences = self.db.get_user_preferences(username)
+        if not preferences:
+            print(f"No preferences found for user '{username}'")
+            return
+        
+        print(f"\n🎯 Preferences for {username} ({len(preferences)} total):")
+        print("-" * 50)
+        for i, (keyword, weight, category) in enumerate(preferences, 1):
+            print(f"{i:2}. {keyword} (weight: {weight})")
+            if category:
+                print(f"     Category: {category}")
 
 def main():
     parser = argparse.ArgumentParser(description='News Tracker MVP')
-    parser.add_argument('command', choices=['scrape', 'latest', 'search', 'stats', 'add-feed', 'list-feeds', 'list-titles', 'personalized', 'add-preference'],
+    parser.add_argument('command', choices=['scrape', 'latest', 'search', 'stats', 'add-feed', 'list-feeds', 'list-titles', 'personalized', 'add-preference', 'list-users', 'user-preferences'],
                        help='Command to execute')
     parser.add_argument('--keyword', '-k', help='Keyword for search command')
     parser.add_argument('--limit', '-l', type=int, default=10, help='Limit number of results')
     parser.add_argument('--feed-name', help='Name for new RSS feed')
     parser.add_argument('--feed-url', help='URL for new RSS feed')
+    parser.add_argument('--username', '-u', help='Username for user-specific operations')
     parser.add_argument('--keywords', help='Keywords for preference (comma-separated)')
     parser.add_argument('--categories', help='Categories for preference (comma-separated)')
     parser.add_argument('--weight', type=float, default=1.0, help='Weight for preference')
-    
+
     args = parser.parse_args()
-    
+
     tracker = NewsTracker()
-    
+
     try:
         if args.command == 'scrape':
             tracker.run_scrape()
@@ -216,13 +245,25 @@ def main():
             tracker.list_titles(args.limit)
         
         elif args.command == 'personalized':
-            tracker.show_personalized(args.limit)
+            if not args.username:
+                print("❌ Personalized command requires --username parameter")
+                sys.exit(1)
+            tracker.show_personalized(args.username, args.limit)
             
         elif args.command == 'add-preference':
-            if not args.keywords:
-                print("❌ Add preference requires --keywords parameter")
+            if not args.keywords or not args.username:
+                print("❌ Add preference requires --keywords and --username parameters")
                 sys.exit(1)
-            tracker.add_preference(args.keywords, args.categories, args.weight)
+            tracker.add_preference(args.username, args.keywords, args.categories, args.weight)
+        
+        elif args.command == 'list-users':
+            tracker.list_users()
+            
+        elif args.command == 'user-preferences':
+            if not args.username:
+                print("❌ User preferences command requires --username parameter")
+                sys.exit(1)
+            tracker.show_user_preferences(args.username)
         
             
     except KeyboardInterrupt:

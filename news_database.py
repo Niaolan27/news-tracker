@@ -27,7 +27,18 @@ class NewsDatabase:
         """Initialize the database with required tables"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
-        # Articles table
+        
+        # Users table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE NOT NULL,
+                email TEXT UNIQUE,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        
+        # Articles table (unchanged)
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS articles (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -45,25 +56,29 @@ class NewsDatabase:
             )
         ''')
         
-        # User preferences table with embeddings
+        # User preferences table with user_id foreign key
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS user_preferences (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
                 keyword TEXT,
                 weight REAL DEFAULT 1.0,
                 category TEXT,
                 embedding BLOB,  -- Store preference embedding
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
             )
         ''')
         
-        # Reading history table (for learning preferences)
+        # Reading history table with user_id foreign key
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS reading_history (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
                 article_id INTEGER,
                 action TEXT, -- 'clicked', 'read', 'dismissed'
                 timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
                 FOREIGN KEY (article_id) REFERENCES articles (id)
             )
         ''')
@@ -161,19 +176,6 @@ class NewsDatabase:
         conn.close()
         return articles
     
-    def add_user_preference(self, keyword: str, weight: float = 1.0, category: str = None):
-        """Add a user preference for content curation"""
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        
-        cursor.execute('''
-            INSERT INTO user_preferences (keyword, weight, category)
-            VALUES (?, ?, ?)
-        ''', (keyword, weight, category))
-        
-        conn.commit()
-        conn.close()
-    
     def get_articles_with_embeddings(self, limit: int = 100) -> List[NewsArticle]:
         """Get articles with their embeddings"""
         conn = sqlite3.connect(self.db_path)
@@ -206,19 +208,21 @@ class NewsDatabase:
         conn.close()
         return articles
     
-    def add_user_preference_with_embedding(self, keywords: List[str], 
+    def add_user_preference_with_embedding(self, username: str, keywords: List[str], 
                                          categories: List[str] = None, 
                                          weight: float = 1.0):
-        """Add user preference with embedding"""
+        """Add user preference with embedding for specific user"""
+        user_id = self.get_or_create_user(username)
         embedding = self.embedding_service.create_preference_embedding(keywords, categories)
         
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
         cursor.execute('''
-            INSERT INTO user_preferences (keyword, weight, category, embedding)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO user_preferences (user_id, keyword, weight, category, embedding)
+            VALUES (?, ?, ?, ?, ?)
         ''', (
+            user_id,
             " ".join(keywords),
             weight,
             " ".join(categories) if categories else None,
@@ -228,13 +232,21 @@ class NewsDatabase:
         conn.commit()
         conn.close()
     
-    def get_personalized_articles(self, limit: int = 20) -> List[Tuple[NewsArticle, float]]:
-        """Get articles ranked by user preferences using embeddings"""
+    def get_personalized_articles(self, username: str, limit: int = 20) -> List[Tuple[NewsArticle, float]]:
+        """Get articles ranked by user preferences using embeddings for specific user"""
+        user_id = self.get_user_id(username)
+        if user_id is None:
+            # User doesn't exist, return latest articles
+            return [(article, 0.0) for article in self.get_latest_articles(limit)]
+        
         # Get user preferences
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
-        cursor.execute('SELECT embedding, weight FROM user_preferences WHERE embedding IS NOT NULL')
+        cursor.execute('''
+            SELECT embedding, weight FROM user_preferences 
+            WHERE user_id = ? AND embedding IS NOT NULL
+        ''', (user_id,))
         preferences = cursor.fetchall()
         
         if not preferences:
@@ -262,7 +274,41 @@ class NewsDatabase:
         
         # Sort by score and return top articles
         scored_articles.sort(key=lambda x: x[1], reverse=True)
+        conn.close()
         return scored_articles[:limit]
+    
+    def get_user_preferences(self, username: str) -> List[Tuple[str, float, str]]:
+        """Get all preferences for a specific user"""
+        user_id = self.get_user_id(username)
+        if user_id is None:
+            return []
+        
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT keyword, weight, category FROM user_preferences 
+            WHERE user_id = ? ORDER BY created_at DESC
+        ''', (user_id,))
+        preferences = cursor.fetchall()
+        
+        conn.close()
+        return preferences
+    
+    def add_reading_history(self, username: str, article_id: int, action: str):
+        """Add reading history for a specific user"""
+        user_id = self.get_or_create_user(username)
+        
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            INSERT INTO reading_history (user_id, article_id, action)
+            VALUES (?, ?, ?)
+        ''', (user_id, article_id, action))
+        
+        conn.commit()
+        conn.close()
     
     def get_article_count(self) -> int:
         """Get total number of articles in database"""
@@ -274,6 +320,53 @@ class NewsDatabase:
         
         conn.close()
         return count
+    
+    def create_user(self, username: str, email: str = None) -> int:
+        """Create a new user and return user ID"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        try:
+            cursor.execute('''
+                INSERT INTO users (username, email)
+                VALUES (?, ?)
+            ''', (username, email))
+            user_id = cursor.lastrowid
+            conn.commit()
+            return user_id
+        except sqlite3.IntegrityError:
+            raise ValueError(f"Username '{username}' already exists")
+        finally:
+            conn.close()
+    
+    def get_user_id(self, username: str) -> Optional[int]:
+        """Get user ID by username"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute('SELECT id FROM users WHERE username = ?', (username,))
+        result = cursor.fetchone()
+        
+        conn.close()
+        return result[0] if result else None
+    
+    def get_or_create_user(self, username: str, email: str = None) -> int:
+        """Get existing user ID or create new user"""
+        user_id = self.get_user_id(username)
+        if user_id is None:
+            user_id = self.create_user(username, email)
+        return user_id
+    
+    def list_users(self) -> List[Tuple[int, str, str]]:
+        """List all users"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute('SELECT id, username, email FROM users ORDER BY username')
+        users = cursor.fetchall()
+        
+        conn.close()
+        return users
 
 # Example usage
 if __name__ == "__main__":
