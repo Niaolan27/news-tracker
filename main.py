@@ -141,7 +141,7 @@ class NewsTracker:
             print(f"{i:4}. [{published}] {article.title}")
             print(f"      Source: {article.source}")
     
-    def show_personalized(self, username, limit=10):
+    def show_personalized(self, username, limit=100):
         """Show personalized article recommendations for specific user"""
         scored_articles = self.db.get_personalized_articles(username, limit)
         

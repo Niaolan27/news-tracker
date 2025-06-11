@@ -17,6 +17,9 @@ class NewsArticle:
     content_hash: Optional[str] = None
     embedding: Optional[np.ndarray] = None
 
+    def __repr__(self):
+        return f"NewsArticle(title={self.title}, published_date={self.published_date}, category={self.category}, description={self.description})\n"
+
 class NewsDatabase:
     def __init__(self, db_path: str = "news_tracker.db"):
         self.db_path = db_path
@@ -254,8 +257,8 @@ class NewsDatabase:
             return [(article, 0.0) for article in self.get_latest_articles(limit)]
         
         # Get articles with embeddings
-        articles = self.get_articles_with_embeddings(limit * 3)  # Get more to rank
-        
+        articles = self.get_articles_with_embeddings(200)  # Get more to rank
+        breakpoint()
         # Calculate scores for each article
         scored_articles = []
         for article in articles:
@@ -367,6 +370,14 @@ class NewsDatabase:
         
         conn.close()
         return users
+    
+    def display_articles(self, articles: List[NewsArticle]):
+        """Display articles in a readable format"""
+        for i, article in enumerate(articles):
+            print(f"{i}.Title: {article.title}")
+            print(f"URL: {article.url}")
+            print(f"Description: {article.description[:100]}...")
+            print("#"*80)
 
 # Example usage
 if __name__ == "__main__":
