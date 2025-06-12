@@ -198,10 +198,19 @@ class NewsTracker:
             print(f"{i:2}. {keyword} (weight: {weight})")
             if category:
                 print(f"     Category: {category}")
+    
+    def delete_user(self, username, force=False):
+        """Delete a user and all their related data"""
+        if not self.db.user_exists(username):
+            print(f"❌ User '{username}' not found in database.")
+            return False
+        
+        success = self.db.delete_user(username, confirm=force)
+        return success
 
 def main():
     parser = argparse.ArgumentParser(description='News Tracker MVP')
-    parser.add_argument('command', choices=['scrape', 'latest', 'search', 'stats', 'add-feed', 'list-feeds', 'list-titles', 'personalized', 'add-preference', 'list-users', 'user-preferences'],
+    parser.add_argument('command', choices=['scrape', 'latest', 'search', 'stats', 'add-feed', 'list-feeds', 'list-titles', 'personalized', 'add-preference', 'list-users', 'user-preferences', 'delete-user'],
                        help='Command to execute')
     parser.add_argument('--keyword', '-k', help='Keyword for search command')
     parser.add_argument('--limit', '-l', type=int, default=10, help='Limit number of results')
@@ -211,6 +220,7 @@ def main():
     parser.add_argument('--keywords', help='Keywords for preference (comma-separated)')
     parser.add_argument('--categories', help='Categories for preference (comma-separated)')
     parser.add_argument('--weight', type=float, default=1.0, help='Weight for preference')
+    parser.add_argument('--force', action='store_true', help='Force operation without confirmation prompt')
 
     args = parser.parse_args()
 
@@ -265,6 +275,11 @@ def main():
                 sys.exit(1)
             tracker.show_user_preferences(args.username)
         
+        elif args.command == 'delete-user':
+            if not args.username:
+                print("❌ Delete user command requires --username parameter")
+                sys.exit(1)
+            tracker.delete_user(args.username, force=args.force)
             
     except KeyboardInterrupt:
         print("\n👋 Goodbye!")

@@ -48,4 +48,7 @@ python main.py list-users
 
 # View a user's preferences
 python main.py user-preferences --username "alice"
+
+# Delete a user
+python main.py delete-user --username "alice"
 ```

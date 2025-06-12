@@ -1,0 +1,9 @@
+flask
+flask-cors
+werkzeug
+pyjwt
+feedparser
+requests
+sentence-transformers
+scikit-learn
+numpy

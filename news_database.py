@@ -258,7 +258,7 @@ class NewsDatabase:
         
         # Get articles with embeddings
         articles = self.get_articles_with_embeddings(200)  # Get more to rank
-        breakpoint()
+        
         # Calculate scores for each article
         scored_articles = []
         for article in articles:
@@ -291,6 +291,24 @@ class NewsDatabase:
         
         cursor.execute('''
             SELECT keyword, weight, category FROM user_preferences 
+            WHERE user_id = ? ORDER BY created_at DESC
+        ''', (user_id,))
+        preferences = cursor.fetchall()
+        
+        conn.close()
+        return preferences
+    
+    def get_user_preferences_with_ids(self, username: str) -> List[Tuple[int, str, float, str]]:
+        """Get all preferences for a specific user with their IDs"""
+        user_id = self.get_user_id(username)
+        if user_id is None:
+            return []
+        
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT id, keyword, weight, category FROM user_preferences 
             WHERE user_id = ? ORDER BY created_at DESC
         ''', (user_id,))
         preferences = cursor.fetchall()
@@ -370,6 +388,86 @@ class NewsDatabase:
         
         conn.close()
         return users
+    
+    def delete_user(self, username: str, confirm: bool = False) -> bool:
+        """Delete a user and all their related data from the database"""
+        user_id = self.get_user_id(username)
+        if user_id is None:
+            print(f"User '{username}' not found in database.")
+            return False
+        
+        if not confirm:
+            # Get user statistics before deletion
+            stats = self.get_user_deletion_stats(username)
+            print(f"\n⚠️  WARNING: This will permanently delete user '{username}' and:")
+            print(f"   📊 {stats['preferences']} user preferences")
+            print(f"   📚 {stats['reading_history']} reading history entries")
+            print(f"   📧 Email: {stats['email'] or 'None'}")
+            print(f"   📅 Created: {stats['created_at']}")
+            
+            response = input("\nAre you sure you want to delete this user? This cannot be undone. (yes/no): ")
+            if response.lower() != 'yes':
+                print("User deletion cancelled.")
+                return False
+        
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        try:
+            # Due to CASCADE DELETE, deleting the user will automatically delete:
+            # - user_preferences (FOREIGN KEY with ON DELETE CASCADE)
+            # - reading_history (FOREIGN KEY with ON DELETE CASCADE)
+            
+            cursor.execute('DELETE FROM users WHERE id = ?', (user_id,))
+            
+            if cursor.rowcount == 0:
+                print(f"Failed to delete user '{username}'")
+                return False
+            
+            conn.commit()
+            print(f"✅ User '{username}' and all related data deleted successfully!")
+            return True
+            
+        except Exception as e:
+            print(f"❌ Error deleting user '{username}': {e}")
+            conn.rollback()
+            return False
+        finally:
+            conn.close()
+    
+    def get_user_deletion_stats(self, username: str) -> dict:
+        """Get statistics about what will be deleted for a user"""
+        user_id = self.get_user_id(username)
+        if user_id is None:
+            return {}
+        
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        stats = {}
+        
+        # Get user info
+        cursor.execute('SELECT username, email, created_at FROM users WHERE id = ?', (user_id,))
+        user_info = cursor.fetchone()
+        if user_info:
+            stats['username'] = user_info[0]
+            stats['email'] = user_info[1]
+            stats['created_at'] = user_info[2]
+        
+        # Count preferences
+        cursor.execute('SELECT COUNT(*) FROM user_preferences WHERE user_id = ?', (user_id,))
+        stats['preferences'] = cursor.fetchone()[0]
+        
+        # Count reading history
+        cursor.execute('SELECT COUNT(*) FROM reading_history WHERE user_id = ?', (user_id,))
+        stats['reading_history'] = cursor.fetchone()[0]
+        
+        conn.close()
+        return stats
+    
+    def user_exists(self, username: str) -> bool:
+        """Check if a user exists in the database"""
+        return self.get_user_id(username) is not None
     
     def display_articles(self, articles: List[NewsArticle]):
         """Display articles in a readable format"""
