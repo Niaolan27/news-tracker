@@ -8,6 +8,9 @@
 .pub/
 /build/
 news_tracker_flutter/build/
+.metadata
+pubspec.lock
+lib/generated_plugin_registrant.dart
 
 # IDE
 .vscode/
@@ -35,3 +38,25 @@ Thumbs.db
 # API keys
 config.json
 api_keys.txt
+
+# iOS (when you add iOS support)
+**/ios/Flutter/.last_build_id
+**/ios/Pods/
+**/ios/.symlinks/
+**/ios/Runner/GeneratedPluginRegistrant.*
+
+# Android 
+**/android/.gradle
+**/android/captures/
+**/android/gradlew
+**/android/gradlew.bat
+**/android/local.properties
+**/android/**/GeneratedPluginRegistrant.java
+
+# Platform-specific generated files
+**/windows/flutter/generated_plugin_registrant.*
+**/macos/Flutter/GeneratedPluginRegistrant.swift
+**/linux/flutter/generated_plugin_registrant.*
+
+# Coverage
+coverage/
