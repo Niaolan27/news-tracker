@@ -5,6 +5,7 @@ from datetime import datetime
 from dataclasses import dataclass
 from typing import List, Optional, Tuple
 from embedding_service import EmbeddingService
+import os
 
 @dataclass
 class NewsArticle:
@@ -21,7 +22,12 @@ class NewsArticle:
         return f"NewsArticle(title={self.title}, published_date={self.published_date}, category={self.category}, description={self.description})\n"
 
 class NewsDatabase:
-    def __init__(self, db_path: str = "news_tracker.db"):
+    def __init__(self, db_path: str = None):
+        if db_path is None:
+            # Database is now in the same directory as the source files
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            db_path = os.path.join(current_dir, "news_tracker.db")
+        
         self.db_path = db_path
         self.embedding_service = EmbeddingService()
         self.init_database()
