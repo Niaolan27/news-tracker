@@ -342,6 +342,38 @@ class NewsDatabase:
         conn.close()
         return count
     
+    def delete_old_articles(self, days_old: int = 3) -> int:
+        """Delete articles older than specified number of days and return count of deleted articles"""
+        from datetime import datetime, timedelta
+        
+        cutoff_date = datetime.now() - timedelta(days=days_old)
+        
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        try:
+            # First, get the count of articles that will be deleted
+            cursor.execute('''
+                SELECT COUNT(*) FROM articles 
+                WHERE published_date < ? OR published_date IS NULL
+            ''', (cutoff_date.isoformat(),))
+            count_to_delete = cursor.fetchone()[0]
+            
+            # Delete the old articles
+            cursor.execute('''
+                DELETE FROM articles 
+                WHERE published_date < ? OR published_date IS NULL
+            ''', (cutoff_date.isoformat(),))
+            
+            conn.commit()
+            return count_to_delete
+            
+        except Exception as e:
+            conn.rollback()
+            raise e
+        finally:
+            conn.close()
+    
     def create_user(self, username: str, email: str = None) -> int:
         """Create a new user and return user ID"""
         conn = sqlite3.connect(self.db_path)
@@ -476,6 +508,38 @@ class NewsDatabase:
             print(f"URL: {article.url}")
             print(f"Description: {article.description[:100]}...")
             print("#"*80)
+    
+    def get_user_reading_history(self, username, limit=50):
+        """Get reading history for a specific user"""
+        query = """
+        SELECT a.id, a.title, a.url, a.description, a.published_date, 
+               a.source, a.category, rh.read_date
+        FROM reading_history rh
+        JOIN articles a ON rh.article_id = a.id
+        JOIN users u ON rh.user_id = u.id
+        WHERE u.username = ?
+        ORDER BY rh.read_date DESC
+        LIMIT ?
+        """
+        
+        cursor = self.conn.cursor()
+        cursor.execute(query, (username, limit))
+        rows = cursor.fetchall()
+        
+        history = []
+        for row in rows:
+            article = NewsArticle(
+                title=row[1],
+                url=row[2],
+                description=row[3] or "",
+                published_date=datetime.fromisoformat(row[4]) if row[4] else None,
+                source=row[5],
+                category=row[6]
+            )
+            read_date = datetime.fromisoformat(row[7])
+            history.append((article, read_date))
+        
+        return history
 
 # Example usage
 if __name__ == "__main__":

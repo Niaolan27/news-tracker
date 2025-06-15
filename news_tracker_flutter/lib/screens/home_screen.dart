@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
 import 'preferences_screen.dart';
+import 'reading_history_screen.dart';
 import 'auth_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -101,6 +102,10 @@ class _HomeScreenState extends State<HomeScreen> {
             onSelected: (value) {
               if (value == 'logout') {
                 _logout();
+              } else if (value == 'history') {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (context) => const ReadingHistoryScreen()),
+                );
               }
             },
             itemBuilder: (context) => [
@@ -113,6 +118,16 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               const PopupMenuDivider(),
+              const PopupMenuItem(
+                value: 'history',
+                child: Row(
+                  children: [
+                    Icon(Icons.history),
+                    SizedBox(width: 8),
+                    Text('Reading History'),
+                  ],
+                ),
+              ),
               const PopupMenuItem(
                 value: 'logout',
                 child: Row(

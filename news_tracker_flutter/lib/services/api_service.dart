@@ -186,6 +186,28 @@ class ApiService {
       throw ApiException(error['error'] ?? 'Failed to mark article as read');
     }
   }
+
+  // Get reading history
+  Future<ReadingHistoryResponse> getReadingHistory() async {
+    final token = await getToken();
+    if (token == null) throw ApiException('Not authenticated');
+
+    final response = await http.get(
+      Uri.parse('$baseUrl/user/reading-history'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return ReadingHistoryResponse.fromJson(data);
+    } else {
+      final error = jsonDecode(response.body);
+      throw ApiException(error['error'] ?? 'Failed to fetch reading history');
+    }
+  }
 }
 
 // Models
@@ -272,6 +294,48 @@ class UserPreference {
       keywords: json['keywords'],
       weight: json['weight']?.toDouble() ?? 1.0,
       category: json['category'],
+    );
+  }
+}
+
+class ReadingHistoryResponse {
+  final List<ReadingHistoryItem> readingHistory;
+  final int total;
+
+  ReadingHistoryResponse({required this.readingHistory, required this.total});
+
+  factory ReadingHistoryResponse.fromJson(Map<String, dynamic> json) {
+    return ReadingHistoryResponse(
+      readingHistory: (json['reading_history'] as List)
+          .map((item) => ReadingHistoryItem.fromJson(item))
+          .toList(),
+      total: json['total'],
+    );
+  }
+}
+
+class ReadingHistoryItem {
+  final String title;
+  final String url;
+  final String source;
+  final String action;
+  final String timestamp;
+
+  ReadingHistoryItem({
+    required this.title,
+    required this.url,
+    required this.source,
+    required this.action,
+    required this.timestamp,
+  });
+
+  factory ReadingHistoryItem.fromJson(Map<String, dynamic> json) {
+    return ReadingHistoryItem(
+      title: json['title'],
+      url: json['url'],
+      source: json['source'],
+      action: json['action'],
+      timestamp: json['timestamp'],
     );
   }
 }

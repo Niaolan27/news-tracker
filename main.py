@@ -208,9 +208,29 @@ class NewsTracker:
         success = self.db.delete_user(username, confirm=force)
         return success
 
+    def show_reading_history(self, username, limit=50):
+        """Show reading history for a specific user"""
+        history = self.db.get_user_reading_history(username, limit)
+        
+        if not history:
+            print(f"No reading history found for user '{username}'")
+            return
+        
+        print(f"\n📚 Reading History for {username} ({len(history)} articles):")
+        print("=" * 80)
+        
+        for i, (article, read_date) in enumerate(history, 1):
+            print(f"\n{i}. {article.title}")
+            print(f"   📅 Read on: {read_date.strftime('%Y-%m-%d %H:%M')}")
+            print(f"   📊 Source: {article.source}")
+            if article.category:
+                print(f"   🏷️  Category: {article.category}")
+            print(f"   🔗 {article.url}")
+            print(f"   📝 {article.description[:100]}{'...' if len(article.description) > 100 else ''}")
+
 def main():
     parser = argparse.ArgumentParser(description='News Tracker MVP')
-    parser.add_argument('command', choices=['scrape', 'latest', 'search', 'stats', 'add-feed', 'list-feeds', 'list-titles', 'personalized', 'add-preference', 'list-users', 'user-preferences', 'delete-user'],
+    parser.add_argument('command', choices=['scrape', 'latest', 'search', 'stats', 'add-feed', 'list-feeds', 'list-titles', 'personalized', 'add-preference', 'list-users', 'user-preferences', 'delete-user', 'reading-history'],
                        help='Command to execute')
     parser.add_argument('--keyword', '-k', help='Keyword for search command')
     parser.add_argument('--limit', '-l', type=int, default=10, help='Limit number of results')
@@ -280,6 +300,12 @@ def main():
                 print("❌ Delete user command requires --username parameter")
                 sys.exit(1)
             tracker.delete_user(args.username, force=args.force)
+        
+        elif args.command == 'reading-history':
+            if not args.username:
+                print("❌ Reading history command requires --username parameter")
+                sys.exit(1)
+            tracker.show_reading_history(args.username, args.limit)
             
     except KeyboardInterrupt:
         print("\n👋 Goodbye!")

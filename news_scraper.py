@@ -42,6 +42,14 @@ class NewsScraper:
     
     def scrape_all_feeds(self) -> Dict[str, int]:
         """Scrape all configured RSS feeds and return count of new articles per feed"""
+        # Delete articles older than 3 days before scraping new ones
+        try:
+            deleted_count = self.db.delete_old_articles(days_old=3)
+            if deleted_count > 0:
+                logger.info(f"Deleted {deleted_count} articles older than 3 days")
+        except Exception as e:
+            logger.error(f"Error deleting old articles: {e}")
+        
         results = {}
         
         for feed_name, feed_url in self.rss_feeds.items():
