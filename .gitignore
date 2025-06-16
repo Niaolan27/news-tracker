@@ -6,8 +6,8 @@
 .packages
 .pub-cache/
 .pub/
-/build/
-!build/web/
+news_tracker_flutter/build/
+!news_tracker_flutter/build/web/
 .metadata
 pubspec.lock
 lib/generated_plugin_registrant.dart

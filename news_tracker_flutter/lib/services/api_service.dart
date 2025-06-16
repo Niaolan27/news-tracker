@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  static const String baseUrl = 'https://8db2-118-189-200-13.ngrok-free.app/api';
+  static const String baseUrl = 'https://1fdf-118-189-200-13.ngrok-free.app';
   String? _token;
 
   // Helper method to get common headers

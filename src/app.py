@@ -7,6 +7,7 @@ from functools import wraps
 import sqlite3
 from news_database import NewsDatabase
 from news_scraper import NewsScraper
+from scheduler import start_background_scraping, get_scheduler
 import logging
 
 app = Flask(__name__)
@@ -23,6 +24,13 @@ logger = logging.getLogger(__name__)
 # Initialize database
 db = NewsDatabase()
 scraper = NewsScraper(db)
+
+# Start background news scraping
+try:
+    scheduler_instance = start_background_scraping()
+    logger.info("Background news scraping started - articles will be scraped every 2 hours")
+except Exception as e:
+    logger.error(f"Failed to start background scraping: {e}")
 
 def token_required(f):
     """Decorator to require JWT token for protected routes"""
@@ -573,6 +581,31 @@ def get_reading_history(current_user_id, current_username):
         
     except Exception as e:
         logger.error(f"Error getting reading history: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+@app.route('/api/scheduler/status', methods=['GET'])
+@token_required
+def get_scheduler_status(current_user_id, current_username):
+    """Get current scheduler status"""
+    try:
+        scheduler = get_scheduler()
+        status = scheduler.get_scheduler_status()
+        
+        # Convert datetime objects to strings for JSON serialization
+        if status['next_run_time']:
+            status['next_run_time'] = status['next_run_time'].isoformat()
+        
+        for job in status['jobs']:
+            if job['next_run_time']:
+                job['next_run_time'] = job['next_run_time'].isoformat()
+        
+        return jsonify({
+            'scheduler_status': status,
+            'message': 'Articles are automatically scraped every 2 hours' if status['is_running'] else 'Scheduler is not running'
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Error getting scheduler status: {e}")
         return jsonify({'error': 'Internal server error'}), 500
 
 # Error handlers
