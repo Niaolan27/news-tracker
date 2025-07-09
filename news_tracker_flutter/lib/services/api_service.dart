@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart';
 class ApiService {
   static const String baseUrl = kDebugMode 
     ? 'http://localhost:5002/api'  // Debug mode
-    : 'https://9df020170bfb.ngrok-free.app';             // Release mode
+    : 'https://9df020170bfb.ngrok-free.app/api';             // Release mode
     
   String? _token;
 
