@@ -70,14 +70,32 @@ class NewsDatabase:
             CREATE TABLE IF NOT EXISTS user_preferences (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id INTEGER NOT NULL,
-                keyword TEXT,
+                description TEXT,
                 weight REAL DEFAULT 1.0,
-                category TEXT,
                 embedding BLOB,  -- Store preference embedding
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
             )
         ''')
+        
+        # Migration: Add description column and copy data from keyword/category if they exist
+        try:
+            cursor.execute("SELECT keyword FROM user_preferences LIMIT 1")
+            # If this succeeds, we have old schema, need to migrate
+            cursor.execute("ALTER TABLE user_preferences ADD COLUMN description_temp TEXT")
+            cursor.execute('''
+                UPDATE user_preferences 
+                SET description_temp = CASE 
+                    WHEN category IS NOT NULL THEN keyword || ' (Category: ' || category || ')'
+                    ELSE keyword
+                END
+            ''')
+            cursor.execute("CREATE TABLE user_preferences_new AS SELECT id, user_id, description_temp as description, weight, embedding, created_at FROM user_preferences")
+            cursor.execute("DROP TABLE user_preferences")
+            cursor.execute("ALTER TABLE user_preferences_new RENAME TO user_preferences")
+        except sqlite3.OperationalError:
+            # New schema already in place, no migration needed
+            pass
         
         # Reading history table with user_id foreign key
         cursor.execute('''
@@ -217,24 +235,22 @@ class NewsDatabase:
         conn.close()
         return articles
     
-    def add_user_preference_with_embedding(self, username: str, keywords: List[str], 
-                                         categories: List[str] = None, 
+    def add_user_preference_with_embedding(self, username: str, description: str, 
                                          weight: float = 1.0):
         """Add user preference with embedding for specific user"""
         user_id = self.get_or_create_user(username)
-        embedding = self.embedding_service.create_preference_embedding(keywords, categories)
+        embedding = self.embedding_service.create_preference_embedding(description)
         
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
         cursor.execute('''
-            INSERT INTO user_preferences (user_id, keyword, weight, category, embedding)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO user_preferences (user_id, description, weight, embedding)
+            VALUES (?, ?, ?, ?)
         ''', (
             user_id,
-            " ".join(keywords),
+            description,
             weight,
-            " ".join(categories) if categories else None,
             self.embedding_service.serialize_embedding(embedding)
         ))
         
@@ -286,7 +302,7 @@ class NewsDatabase:
         conn.close()
         return scored_articles[:limit]
     
-    def get_user_preferences(self, username: str) -> List[Tuple[str, float, str]]:
+    def get_user_preferences(self, username: str) -> List[Tuple[str, float]]:
         """Get all preferences for a specific user"""
         user_id = self.get_user_id(username)
         if user_id is None:
@@ -296,7 +312,7 @@ class NewsDatabase:
         cursor = conn.cursor()
         
         cursor.execute('''
-            SELECT keyword, weight, category FROM user_preferences 
+            SELECT description, weight FROM user_preferences 
             WHERE user_id = ? ORDER BY created_at DESC
         ''', (user_id,))
         preferences = cursor.fetchall()
@@ -304,7 +320,7 @@ class NewsDatabase:
         conn.close()
         return preferences
     
-    def get_user_preferences_with_ids(self, username: str) -> List[Tuple[int, str, float, str]]:
+    def get_user_preferences_with_ids(self, username: str) -> List[Tuple[int, str, float]]:
         """Get all preferences for a specific user with their IDs"""
         user_id = self.get_user_id(username)
         if user_id is None:
@@ -314,7 +330,7 @@ class NewsDatabase:
         cursor = conn.cursor()
         
         cursor.execute('''
-            SELECT id, keyword, weight, category FROM user_preferences 
+            SELECT id, description, weight FROM user_preferences 
             WHERE user_id = ? ORDER BY created_at DESC
         ''', (user_id,))
         preferences = cursor.fetchall()

@@ -1,9 +1,13 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/foundation.dart';
 
 class ApiService {
-  static const String baseUrl = 'https://1fdf-118-189-200-13.ngrok-free.app/api';
+  static const String baseUrl = kDebugMode 
+    ? 'http://localhost:5002/api'  // Debug mode
+    : 'https://9df020170bfb.ngrok-free.app';             // Release mode
+    
   String? _token;
 
   // Helper method to get common headers
@@ -138,7 +142,7 @@ class ApiService {
   }
 
   // Add user preference
-  Future<void> addUserPreference(String keywords, [String? categories, double weight = 1.0]) async {
+  Future<void> addUserPreference(String description, [double weight = 1.0]) async {
     final token = await getToken();
     if (token == null) throw ApiException('Not authenticated');
 
@@ -150,8 +154,7 @@ class ApiService {
         'ngrok-skip-browser-warning': 'true',
       },
       body: jsonEncode({
-        'keywords': keywords,
-        if (categories != null) 'categories': categories,
+        'description': description,
         'weight': weight,
       }),
     );
@@ -297,23 +300,20 @@ class Article {
 
 class UserPreference {
   final int id;
-  final String keywords;
+  final String description;
   final double weight;
-  final String? category;
 
   UserPreference({
     required this.id,
-    required this.keywords,
+    required this.description,
     required this.weight,
-    this.category,
   });
 
   factory UserPreference.fromJson(Map<String, dynamic> json) {
     return UserPreference(
       id: json['id'],
-      keywords: json['keywords'],
+      description: json['description'],
       weight: json['weight']?.toDouble() ?? 1.0,
-      category: json['category'],
     );
   }
 }

@@ -115,8 +115,8 @@ python main.py scrape
 #### User Management
 ```bash
 # Add preferences for different users
-python main.py add-preference --username "alice" --keywords "AI,machine learning" --weight 1.5
-python main.py add-preference --username "bob" --keywords "sports,basketball" --weight 2.0
+python main.py add-preference --username "alice" --description "AI, machine learning, and technology news" --weight 1.5
+python main.py add-preference --username "bob" --description "sports, basketball, and athletics" --weight 2.0
 
 # Get personalized recommendations for specific users
 python main.py personalized --username "alice" --limit 10

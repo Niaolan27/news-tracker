@@ -10,8 +10,7 @@ class PreferencesScreen extends StatefulWidget {
 
 class _PreferencesScreenState extends State<PreferencesScreen> {
   final ApiService _apiService = ApiService();
-  final _keywordsController = TextEditingController();
-  final _categoriesController = TextEditingController();
+  final _descriptionController = TextEditingController();
   final _weightController = TextEditingController(text: '1.0');
   
   List<UserPreference> _preferences = [];
@@ -27,8 +26,7 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
 
   @override
   void dispose() {
-    _keywordsController.dispose();
-    _categoriesController.dispose();
+    _descriptionController.dispose();
     _weightController.dispose();
     super.dispose();
   }
@@ -54,9 +52,9 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
   }
 
   Future<void> _addPreference() async {
-    if (_keywordsController.text.trim().isEmpty) {
+    if (_descriptionController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter keywords')),
+        const SnackBar(content: Text('Please enter a description')),
       );
       return;
     }
@@ -67,19 +65,14 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
 
     try {
       final weight = double.tryParse(_weightController.text) ?? 1.0;
-      final categories = _categoriesController.text.trim().isEmpty 
-          ? null 
-          : _categoriesController.text.trim();
 
       await _apiService.addUserPreference(
-        _keywordsController.text.trim(),
-        categories,
+        _descriptionController.text.trim(),
         weight,
       );
 
       // Clear form
-      _keywordsController.clear();
-      _categoriesController.clear();
+      _descriptionController.clear();
       _weightController.text = '1.0';
 
       // Reload preferences
@@ -108,7 +101,7 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Preference'),
-        content: Text('Are you sure you want to delete the preference for "${preference.keywords}"?'),
+        content: Text('Are you sure you want to delete the preference for "${preference.description}"?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -179,22 +172,15 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
                 ),
                 const SizedBox(height: 16),
                 TextField(
-                  controller: _keywordsController,
+                  controller: _descriptionController,
                   decoration: const InputDecoration(
-                    labelText: 'Keywords (comma-separated)',
-                    hintText: 'e.g., AI, machine learning, technology',
+                    labelText: 'Description',
+                    hintText: 'e.g., AI, machine learning, and technology news',
                     border: OutlineInputBorder(),
-                    helperText: 'Enter topics you\'re interested in',
+                    helperText: 'Describe what topics you\'re interested in',
                   ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _categoriesController,
-                  decoration: const InputDecoration(
-                    labelText: 'Categories (optional)',
-                    hintText: 'e.g., Technology, Science',
-                    border: OutlineInputBorder(),
-                  ),
+                  maxLines: 3,
+                  minLines: 1,
                 ),
                 const SizedBox(height: 12),
                 TextField(
@@ -335,16 +321,12 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
         title: Text(
-          preference.keywords,
+          preference.description,
           style: const TextStyle(fontWeight: FontWeight.w500),
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (preference.category != null) ...[
-              const SizedBox(height: 4),
-              Text('Categories: ${preference.category}'),
-            ],
             const SizedBox(height: 4),
             Text('Weight: ${preference.weight}'),
           ],
@@ -353,7 +335,7 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
           icon: const Icon(Icons.delete, color: Colors.red),
           onPressed: () => _deletePreference(preference),
         ),
-        isThreeLine: preference.category != null,
+        isThreeLine: false,
       ),
     );
   }
@@ -369,16 +351,10 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'Keywords:',
+                'Description:',
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
-              Text('Enter topics you\'re interested in, separated by commas. Examples: "AI, machine learning", "sports, basketball", "climate change".'),
-              SizedBox(height: 12),
-              Text(
-                'Categories:',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              Text('Optional. Specify news categories like "Technology", "Science", "Politics", etc.'),
+              Text('Describe the topics you\'re interested in using natural language. Examples: "AI, machine learning, and technology news", "sports, basketball, and athletics", "climate change and environmental issues".'),
               SizedBox(height: 12),
               Text(
                 'Weight:',
@@ -390,7 +366,7 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
                 'Tips:',
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
-              Text('• Use specific keywords for better results\n• Set higher weights for topics you care most about\n• You can always edit or delete preferences later'),
+              Text('• Use natural language to describe your interests\n• Be specific for better results\n• Set higher weights for topics you care most about\n• You can always edit or delete preferences later'),
             ],
           ),
         ),

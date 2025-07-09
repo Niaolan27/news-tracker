@@ -155,12 +155,11 @@ class NewsTrackerAPITester:
         try:
             preferences = [
                 {
-                    "keywords": "AI,machine learning,technology",
-                    "categories": ["Technology", "Science"],
+                    "description": "AI, machine learning, and technology news",
                     "weight": 1.5
                 },
                 {
-                    "keywords": "politics,government",
+                    "description": "politics and government",
                     "weight": 1.0
                 }
             ]
@@ -169,7 +168,7 @@ class NewsTrackerAPITester:
                 response = self.make_request('POST', '/user/preferences', data=pref, use_auth=True)
                 
                 if response.status_code == 201:
-                    self.log_test(f"Add Preference {i+1}", True, f"Added preference: {pref['keywords']}")
+                    self.log_test(f"Add Preference {i+1}", True, f"Added preference: {pref['description']}")
                 else:
                     self.log_test(f"Add Preference {i+1}", False, f"Status code: {response.status_code}")
         except Exception as e:
@@ -338,7 +337,7 @@ class NewsTrackerAPITester:
         try:
             # Create a preference and get its ID
             pref_data = {
-                "keywords": "test,crud,operations",
+                "description": "test crud operations for preferences",
                 "weight": 2.0
             }
             
@@ -356,7 +355,7 @@ class NewsTrackerAPITester:
             preferences = response.json()['preferences']
             test_pref = None
             for pref in preferences:
-                if 'test' in pref.get('keywords', ''):
+                if 'test' in pref.get('description', ''):
                     test_pref = pref
                     break
             
@@ -368,7 +367,7 @@ class NewsTrackerAPITester:
             
             # Update the preference
             update_data = {
-                "keywords": "updated,test,keywords",
+                "description": "updated test description for preferences",
                 "weight": 3.0
             }
             

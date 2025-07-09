@@ -27,14 +27,9 @@ class EmbeddingService:
         embedding = self.model.encode(combined_text, normalize_embeddings=True)
         return embedding
     
-    def create_preference_embedding(self, keywords: List[str], categories: List[str] = None) -> np.ndarray:
-        """Create embedding vector for user preferences"""
-        text_parts = keywords.copy()
-        if categories:
-            text_parts.extend([f"Category: {cat}" for cat in categories])
-        
-        combined_text = " ".join(text_parts)
-        embedding = self.model.encode(combined_text, normalize_embeddings=True)
+    def create_preference_embedding(self, description: str) -> np.ndarray:
+        """Create embedding vector for user preference description"""
+        embedding = self.model.encode(description, normalize_embeddings=True)
         return embedding
     
     def calculate_similarity(self, embedding1: np.ndarray, embedding2: np.ndarray) -> float:

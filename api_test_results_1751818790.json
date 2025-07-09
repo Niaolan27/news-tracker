@@ -1,0 +1,125 @@
+{
+  "summary": {
+    "tests_passed": 17,
+    "tests_failed": 2,
+    "total_tests": 19,
+    "success_rate": 89.47368421052632,
+    "test_run_time": "2025-07-07T00:19:50.874675"
+  },
+  "detailed_results": [
+    {
+      "test": "Health Check",
+      "success": true,
+      "message": "API is healthy, 378 articles in DB",
+      "timestamp": "2025-07-07T00:19:50.302755"
+    },
+    {
+      "test": "User Registration",
+      "success": true,
+      "message": "User test_user_1751818790 created successfully",
+      "timestamp": "2025-07-07T00:19:50.370604"
+    },
+    {
+      "test": "User Login",
+      "success": true,
+      "message": "Login successful for test_user_1751818790",
+      "timestamp": "2025-07-07T00:19:50.436321"
+    },
+    {
+      "test": "Invalid Login",
+      "success": true,
+      "message": "Correctly rejected invalid credentials",
+      "timestamp": "2025-07-07T00:19:50.438825"
+    },
+    {
+      "test": "Add Preference 1",
+      "success": true,
+      "message": "Added preference: AI, machine learning, and technology news",
+      "timestamp": "2025-07-07T00:19:50.640977"
+    },
+    {
+      "test": "Add Preference 2",
+      "success": true,
+      "message": "Added preference: politics and government",
+      "timestamp": "2025-07-07T00:19:50.716735"
+    },
+    {
+      "test": "Get User Preferences",
+      "success": true,
+      "message": "Retrieved 2 preferences",
+      "timestamp": "2025-07-07T00:19:50.720630"
+    },
+    {
+      "test": "Get Latest Articles",
+      "success": true,
+      "message": "Retrieved 10 articles",
+      "timestamp": "2025-07-07T00:19:50.755402"
+    },
+    {
+      "test": "Get Recommended Articles",
+      "success": true,
+      "message": "Retrieved 10 recommended articles",
+      "timestamp": "2025-07-07T00:19:50.818042"
+    },
+    {
+      "test": "Relevance Scoring",
+      "success": true,
+      "message": "Articles include relevance scores",
+      "timestamp": "2025-07-07T00:19:50.818055"
+    },
+    {
+      "test": "Mark Article Read",
+      "success": true,
+      "message": "Successfully marked article as read",
+      "timestamp": "2025-07-07T00:19:50.824888"
+    },
+    {
+      "test": "Get Reading History",
+      "success": true,
+      "message": "Retrieved 1 history entries",
+      "timestamp": "2025-07-07T00:19:50.827075"
+    },
+    {
+      "test": "Preference CRUD - Update",
+      "success": false,
+      "message": "Update failed: 404",
+      "timestamp": "2025-07-07T00:19:50.856199"
+    },
+    {
+      "test": "Preference CRUD - Delete",
+      "success": false,
+      "message": "Delete failed: 404",
+      "timestamp": "2025-07-07T00:19:50.858034"
+    },
+    {
+      "test": "Unauthorized Access",
+      "success": true,
+      "message": "All protected endpoints properly require authentication",
+      "timestamp": "2025-07-07T00:19:50.865729"
+    },
+    {
+      "test": "Input Validation - Registration",
+      "success": true,
+      "message": "Correctly rejected empty registration",
+      "timestamp": "2025-07-07T00:19:50.867808"
+    },
+    {
+      "test": "Input Validation - Preferences",
+      "success": true,
+      "message": "Correctly rejected preference without keywords",
+      "timestamp": "2025-07-07T00:19:50.869667"
+    },
+    {
+      "test": "Input Validation - Article Read",
+      "success": true,
+      "message": "Correctly rejected read without article URL",
+      "timestamp": "2025-07-07T00:19:50.871961"
+    },
+    {
+      "test": "Cleanup Test User",
+      "success": true,
+      "message": "Successfully deleted test user test_user_1751818790",
+      "timestamp": "2025-07-07T00:19:50.874640"
+    }
+  ]
+}

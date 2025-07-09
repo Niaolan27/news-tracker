@@ -160,15 +160,10 @@ class NewsTracker:
                 print(f"   🏷️  {article.category}")
             print(f"   🔗 {article.url}")
     
-    def add_preference(self, username, keywords, categories=None, weight=1.0):
+    def add_preference(self, username, description, weight=1.0):
         """Add user preference for personalization for specific user"""
-        keyword_list = keywords.split(',') if isinstance(keywords, str) else keywords
-        category_list = categories.split(',') if categories and isinstance(categories, str) else categories
-        
-        self.db.add_user_preference_with_embedding(username, keyword_list, category_list, weight)
-        print(f"✅ Added preference for {username}: {keyword_list}")
-        if category_list:
-            print(f"   Categories: {category_list}")
+        self.db.add_user_preference_with_embedding(username, description, weight)
+        print(f"✅ Added preference for {username}: {description}")
         print(f"   Weight: {weight}")
     
     def list_users(self):
@@ -194,10 +189,8 @@ class NewsTracker:
         
         print(f"\n🎯 Preferences for {username} ({len(preferences)} total):")
         print("-" * 50)
-        for i, (keyword, weight, category) in enumerate(preferences, 1):
-            print(f"{i:2}. {keyword} (weight: {weight})")
-            if category:
-                print(f"     Category: {category}")
+        for i, (description, weight) in enumerate(preferences, 1):
+            print(f"{i:2}. {description} (weight: {weight})")
     
     def delete_user(self, username, force=False):
         """Delete a user and all their related data"""
@@ -237,8 +230,7 @@ def main():
     parser.add_argument('--feed-name', help='Name for new RSS feed')
     parser.add_argument('--feed-url', help='URL for new RSS feed')
     parser.add_argument('--username', '-u', help='Username for user-specific operations')
-    parser.add_argument('--keywords', help='Keywords for preference (comma-separated)')
-    parser.add_argument('--categories', help='Categories for preference (comma-separated)')
+    parser.add_argument('--description', help='Description for preference')
     parser.add_argument('--weight', type=float, default=1.0, help='Weight for preference')
     parser.add_argument('--force', action='store_true', help='Force operation without confirmation prompt')
 
@@ -281,10 +273,10 @@ def main():
             tracker.show_personalized(args.username, args.limit)
             
         elif args.command == 'add-preference':
-            if not args.keywords or not args.username:
-                print("❌ Add preference requires --keywords and --username parameters")
+            if not args.description or not args.username:
+                print("❌ Add preference requires --description and --username parameters")
                 sys.exit(1)
-            tracker.add_preference(args.username, args.keywords, args.categories, args.weight)
+            tracker.add_preference(args.username, args.description, args.weight)
         
         elif args.command == 'list-users':
             tracker.list_users()

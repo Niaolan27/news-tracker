@@ -139,9 +139,9 @@ Authorization: Bearer <your-jwt-token>
 {
   "preferences": [
     {
-      "keywords": "AI machine learning",
-      "weight": 1.5,
-      "category": "Technology"
+      "id": 1,
+      "description": "AI, machine learning, and neural networks",
+      "weight": 1.5
     }
   ],
   "username": "alice"
@@ -156,8 +156,7 @@ Authorization: Bearer <your-jwt-token>
 **Request Body:**
 ```json
 {
-  "keywords": "AI,machine learning,neural networks",  // can be string or array
-  "categories": ["Technology", "Science"],            // optional
+  "description": "AI, machine learning, and neural networks",
   "weight": 1.5                                      // optional, default: 1.0
 }
 ```
@@ -166,8 +165,7 @@ Authorization: Bearer <your-jwt-token>
 ```json
 {
   "message": "Preference added successfully",
-  "keywords": ["AI", "machine learning", "neural networks"],
-  "categories": ["Technology", "Science"],
+  "description": "AI, machine learning, and neural networks",
   "weight": 1.5
 }
 ```

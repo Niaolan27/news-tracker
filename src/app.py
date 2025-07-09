@@ -278,12 +278,11 @@ def get_user_preferences(current_user_id, current_username):
         preferences = db.get_user_preferences_with_ids(current_username)
         
         preferences_data = []
-        for pref_id, keyword, weight, category in preferences:
+        for pref_id, description, weight in preferences:
             preferences_data.append({
                 'id': pref_id,
-                'keywords': keyword,
-                'weight': weight,
-                'category': category
+                'description': description,
+                'weight': weight
             })
         
         return jsonify({
@@ -302,25 +301,20 @@ def add_user_preference(current_user_id, current_username):
     try:
         data = request.get_json()
         
-        if not data or not data.get('keywords'):
-            return jsonify({'error': 'keywords are required'}), 400
+        if not data or not data.get('description'):
+            return jsonify({'error': 'description is required'}), 400
         
-        keywords = data['keywords']
-        categories = data.get('categories', [])
+        description = data['description'].strip()
         weight = data.get('weight', 1.0)
         
-        # Convert comma-separated strings to lists
-        if isinstance(keywords, str):
-            keywords = [k.strip() for k in keywords.split(',')]
-        if isinstance(categories, str):
-            categories = [c.strip() for c in categories.split(',') if c.strip()]
+        if not description:
+            return jsonify({'error': 'description cannot be empty'}), 400
         
-        db.add_user_preference_with_embedding(current_username, keywords, categories, weight)
+        db.add_user_preference_with_embedding(current_username, description, weight)
         
         return jsonify({
             'message': 'Preference added successfully',
-            'keywords': keywords,
-            'categories': categories,
+            'description': description,
             'weight': weight
         }), 201
         
@@ -343,7 +337,7 @@ def update_user_preference(current_user_id, current_username, preference_id):
         cursor = conn.cursor()
         
         cursor.execute('''
-            SELECT id, keyword, category, weight FROM user_preferences 
+            SELECT id, description, weight FROM user_preferences 
             WHERE id = ? AND user_id = ?
         ''', (preference_id, current_user_id))
         
@@ -353,39 +347,28 @@ def update_user_preference(current_user_id, current_username, preference_id):
             return jsonify({'error': 'Preference not found or access denied'}), 404
         
         # Get updated values or keep existing ones
-        keywords = data.get('keywords')
-        categories = data.get('categories')
-        weight = data.get('weight', existing_pref[3])
+        description = data.get('description')
+        weight = data.get('weight', existing_pref[2])
         
-        if keywords is None:
-            # Keep existing keywords if not provided
-            keywords = existing_pref[1]
+        if description is None:
+            # Keep existing description if not provided
+            description = existing_pref[1]
         else:
-            # Convert comma-separated strings to lists
-            if isinstance(keywords, str):
-                keywords = [k.strip() for k in keywords.split(',')]
-            keywords = " ".join(keywords)
-        
-        if categories is not None:
-            if isinstance(categories, str):
-                categories = [c.strip() for c in categories.split(',') if c.strip()]
-            categories = " ".join(categories) if categories else None
-        else:
-            categories = existing_pref[2]
+            description = description.strip()
+            if not description:
+                conn.close()
+                return jsonify({'error': 'description cannot be empty'}), 400
         
         # Generate new embedding
-        keywords_list = keywords.split() if isinstance(keywords, str) else keywords
-        categories_list = categories.split() if categories else None
-        embedding = db.embedding_service.create_preference_embedding(keywords_list, categories_list)
+        embedding = db.embedding_service.create_preference_embedding(description)
         
         # Update preference
         cursor.execute('''
             UPDATE user_preferences 
-            SET keyword = ?, category = ?, weight = ?, embedding = ?
+            SET description = ?, weight = ?, embedding = ?
             WHERE id = ? AND user_id = ?
         ''', (
-            keywords,
-            categories,
+            description,
             weight,
             db.embedding_service.serialize_embedding(embedding),
             preference_id,
@@ -398,8 +381,7 @@ def update_user_preference(current_user_id, current_username, preference_id):
         return jsonify({
             'message': 'Preference updated successfully',
             'preference_id': preference_id,
-            'keywords': keywords_list,
-            'categories': categories_list,
+            'description': description,
             'weight': weight
         }), 200
         
@@ -417,7 +399,7 @@ def delete_user_preference(current_user_id, current_username, preference_id):
         
         # Check if preference exists and belongs to current user
         cursor.execute('''
-            SELECT keyword FROM user_preferences 
+            SELECT description FROM user_preferences 
             WHERE id = ? AND user_id = ?
         ''', (preference_id, current_user_id))
         
@@ -438,7 +420,7 @@ def delete_user_preference(current_user_id, current_username, preference_id):
         return jsonify({
             'message': 'Preference deleted successfully',
             'preference_id': preference_id,
-            'deleted_keywords': existing_pref[0]
+            'deleted_description': existing_pref[0]
         }), 200
         
     except Exception as e:
@@ -623,4 +605,4 @@ def bad_request(error):
 
 if __name__ == '__main__':
     # Run the Flask development server
-    app.run(debug=True, host='0.0.0.0', port=5001)
+    app.run(debug=True, host='0.0.0.0', port=5002)

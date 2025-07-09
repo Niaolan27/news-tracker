@@ -27,17 +27,10 @@ class NewsScraper:
             'The Guardian': 'https://www.theguardian.com/world/rss',
             'New York Times': 'https://rss.nytimes.com/services/xml/rss/nyt/World.xml',
             "New York Times World": "https://rss.nytimes.com/services/xml/rss/nyt/World.xml",
-            "Washington Post World": "https://feeds.washingtonpost.com/rss/world",
-            "NPR News": "https://www.npr.org/rss/rss.php?id=1001",
             "Yahoo News": "https://news.yahoo.com/rss/",
             "ABC News International": "https://abcnews.go.com/abcnews/internationalheadlines",
-            "Politico": "https://www.politico.com/rss/politicopicks.xml",
             "The Guardian US": "https://www.theguardian.com/world/usa/rss",
             "South China Morning Post": "https://www.scmp.com/rss/91/feed",
-            "Times of India World": "https://timesofindia.indiatimes.com/rssfeeds/296589292.cms",
-            "BuzzFeed World": "https://www.buzzfeed.com/world.xml",
-            "CNBC World News": "https://www.cnbc.com/id/100727362/device/rss/rss.html",
-            "Euronews International": "https://www.euronews.com/rss?level=theme&name=international"
         }
     
     def scrape_all_feeds(self) -> Dict[str, int]:
