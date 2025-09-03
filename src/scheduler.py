@@ -4,7 +4,7 @@ import logging
 from datetime import datetime
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
-from news_database import NewsDatabase
+from supabase_database import SupabaseDatabase
 from news_scraper import NewsScraper
 
 logger = logging.getLogger(__name__)
@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 class NewsScrapingScheduler:
     def __init__(self, database=None, scraper=None):
         """Initialize the scheduler with database and scraper instances"""
-        self.db = database or NewsDatabase()
+        self.db = database or SupabaseDatabase()
         self.scraper = scraper or NewsScraper(self.db)
         self.scheduler = BackgroundScheduler()
         self.is_running = False

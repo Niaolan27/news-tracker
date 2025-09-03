@@ -6,16 +6,22 @@ from dataclasses import dataclass
 from typing import List, Optional, Tuple
 from embedding_service import EmbeddingService
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 @dataclass
 class NewsArticle:
     title: str
     url: str
     description: str
+    content: str
     published_date: datetime
     source: str
     category: Optional[str] = None
     content_hash: Optional[str] = None
+    is_read: bool = False
+    user_rating: Optional[float] = None
     embedding: Optional[np.ndarray] = None
 
     def __repr__(self):
@@ -47,20 +53,21 @@ class NewsDatabase:
             )
         ''')
         
-        # Articles table (unchanged)
+        # Articles table with content field
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS articles (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 title TEXT NOT NULL,
                 url TEXT UNIQUE NOT NULL,
                 description TEXT,
+                content TEXT,
                 published_date DATETIME,
                 source TEXT,
                 category TEXT,
                 content_hash TEXT UNIQUE,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 is_read BOOLEAN DEFAULT 0,
-                user_rating INTEGER DEFAULT 0,
+                user_rating REAL DEFAULT 0,
                 embedding BLOB  -- Store embedding vector as binary data
             )
         ''')
@@ -97,6 +104,14 @@ class NewsDatabase:
             # New schema already in place, no migration needed
             pass
         
+        # Migration: Add content column to articles table if it doesn't exist
+        try:
+            cursor.execute("SELECT content FROM articles LIMIT 1")
+        except sqlite3.OperationalError:
+            # Content column doesn't exist, add it
+            cursor.execute("ALTER TABLE articles ADD COLUMN content TEXT")
+            logger.info("Added content column to articles table")
+        
         # Reading history table with user_id foreign key
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS reading_history (
@@ -130,12 +145,13 @@ class NewsDatabase:
         try:
             cursor.execute('''
                 INSERT INTO articles 
-                (title, url, description, published_date, source, category, content_hash, embedding)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                (title, url, description, content, published_date, source, category, content_hash, embedding)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
                 article.title,
                 article.url,
                 article.description,
+                article.content,
                 article.published_date,
                 article.source,
                 article.category,
@@ -156,7 +172,7 @@ class NewsDatabase:
         cursor = conn.cursor()
         
         cursor.execute('''
-            SELECT title, url, description, published_date, source, category
+            SELECT title, url, description, content, published_date, source, category
             FROM articles
             ORDER BY published_date DESC
             LIMIT ?
@@ -168,9 +184,10 @@ class NewsDatabase:
                 title=row[0],
                 url=row[1],
                 description=row[2],
-                published_date=datetime.fromisoformat(row[3]) if row[3] else None,
-                source=row[4],
-                category=row[5]
+                content=row[3] or "",
+                published_date=datetime.fromisoformat(row[4]) if row[4] else None,
+                source=row[5],
+                category=row[6]
             ))
         
         conn.close()
@@ -182,7 +199,7 @@ class NewsDatabase:
         cursor = conn.cursor()
         
         cursor.execute('''
-            SELECT title, url, description, published_date, source, category
+            SELECT title, url, description, content, published_date, source, category
             FROM articles
             WHERE title LIKE ? OR description LIKE ?
             ORDER BY published_date DESC
@@ -195,9 +212,41 @@ class NewsDatabase:
                 title=row[0],
                 url=row[1],
                 description=row[2],
-                published_date=datetime.fromisoformat(row[3]) if row[3] else None,
-                source=row[4],
-                category=row[5]
+                content=row[3] or "",
+                published_date=datetime.fromisoformat(row[4]) if row[4] else None,
+                source=row[5],
+                category=row[6]
+            ))
+        
+        conn.close()
+        return articles
+    
+    def get_articles_by_source(self, source: str, limit: int = 20) -> List[NewsArticle]:
+        """Get articles by source"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT title, url, description, content, published_date, source, category, content_hash, is_read, user_rating
+            FROM articles
+            WHERE source = ?
+            ORDER BY published_date DESC
+            LIMIT ?
+        ''', (source, limit))
+        
+        articles = []
+        for row in cursor.fetchall():
+            articles.append(NewsArticle(
+                title=row[0],
+                url=row[1],
+                description=row[2],
+                content=row[3] or "",
+                published_date=datetime.fromisoformat(row[4]) if row[4] else None,
+                source=row[5],
+                category=row[6],
+                content_hash=row[7],
+                is_read=bool(row[8]) if row[8] is not None else False,
+                user_rating=row[9]
             ))
         
         conn.close()
@@ -209,7 +258,7 @@ class NewsDatabase:
         cursor = conn.cursor()
         
         cursor.execute('''
-            SELECT title, url, description, published_date, source, category, embedding
+            SELECT title, url, description, content, published_date, source, category, content_hash, is_read, user_rating, embedding
             FROM articles
             WHERE embedding IS NOT NULL
             ORDER BY published_date DESC
@@ -219,16 +268,20 @@ class NewsDatabase:
         articles = []
         for row in cursor.fetchall():
             embedding = None
-            if row[6]:  # embedding column
-                embedding = self.embedding_service.deserialize_embedding(row[6])
+            if row[10]:  # embedding column
+                embedding = self.embedding_service.deserialize_embedding(row[10])
             
             articles.append(NewsArticle(
                 title=row[0],
                 url=row[1],
                 description=row[2],
-                published_date=datetime.fromisoformat(row[3]) if row[3] else None,
-                source=row[4],
-                category=row[5],
+                content=row[3] or "",
+                published_date=datetime.fromisoformat(row[4]) if row[4] else None,
+                source=row[5],
+                category=row[6],
+                content_hash=row[7],
+                is_read=bool(row[8]) if row[8] is not None else False,
+                user_rating=row[9],
                 embedding=embedding
             ))
         
