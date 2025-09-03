@@ -7,7 +7,8 @@ A simple news aggregator that scrapes RSS feeds and stores articles in a databas
 import sys
 import argparse
 from datetime import datetime, timedelta
-from news_database import NewsDatabase, NewsArticle
+# from news_database import NewsDatabase, NewsArticle
+from supabase_database import SupabaseDatabase
 from news_scraper import NewsScraper
 import logging
 
@@ -20,9 +21,9 @@ logger = logging.getLogger(__name__)
 
 class NewsTracker:
     def __init__(self):
-        self.db = NewsDatabase()
+        self.db = SupabaseDatabase()
         self.scraper = NewsScraper(self.db)
-    
+
     def run_scrape(self):
         """Run a full scrape of all configured RSS feeds"""
         print("🔄 Starting news scrape...")
