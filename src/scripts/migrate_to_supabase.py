@@ -12,9 +12,9 @@ logger = logging.getLogger(__name__)
 
 class SupabaseMigrationDatabase:
     def __init__(self):
-        """Initialize Supabase client with SERVICE ROLE key for migration"""
+        """Initialize Supabase client with secret key for migration"""
         self.supabase_url = os.getenv('SUPABASE_URL')
-        self.service_role_key = os.getenv('SUPABASE_SERVICE_ROLE')  # Use service role key
+        self.service_role_key = os.getenv('SUPABASE_SECRET_KEY')  # Use service role key
         
         if not self.supabase_url or not self.service_role_key:
             raise ValueError("Supabase credentials not found in environment variables")
