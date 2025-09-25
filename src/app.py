@@ -28,7 +28,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Initialize database - use Supabase if configured, fallback to SQLite
-use_supabase = os.getenv('SUPABASE_URL') and os.getenv('SUPABASE_ANON_KEY')
+use_supabase = os.getenv('SUPABASE_URL') and os.getenv('SUPABASE_PUBLISHABLE_KEY')
 if use_supabase:
     logger.info("Using Supabase database")
     db = SupabaseDatabase()

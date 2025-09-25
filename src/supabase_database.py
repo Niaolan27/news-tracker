@@ -34,12 +34,14 @@ class SupabaseDatabase:
     def __init__(self):
         """Initialize Supabase client"""
         self.supabase_url = os.getenv('SUPABASE_URL')
-        self.supabase_key = os.getenv('SUPABASE_ANON_KEY')
+        print(f"Supabase URL: {self.supabase_url}")
+        self.supabase_key = os.getenv('SUPABASE_PUBLISHABLE_KEY')
+        self.supabase_secret_key = os.getenv('SUPABASE_SECRET_KEY')
         
         if not self.supabase_url or not self.supabase_key:
             raise ValueError("Supabase credentials not found in environment variables")
         
-        self.supabase: Client = create_client(self.supabase_url, self.supabase_key)
+        self.supabase: Client = create_client(self.supabase_url, self.supabase_secret_key)
         self.embedding_service = EmbeddingService()
         logger.info("Supabase client initialized")
 
@@ -87,6 +89,7 @@ class SupabaseDatabase:
             
             # Convert numpy array to list for pgvector
             article.embedding = embedding_array.tolist() if embedding_array is not None else None
+            # breakpoint()
             
             data = {
                 'title': article.title,
